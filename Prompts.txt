@@ -1,0 +1,60 @@
+To push changes you've made in Eclipse to your Git repository using Git Bash, you'll need to follow these steps:
+
+Step 1: Open Git Bash
+Navigate to the project directory where your local Git repository is. If you're not already in your project's directory in Git Bash, you can change to it using the cd command:
+
+bash
+Copy code
+cd path/to/your/project
+Replace path/to/your/project with the actual path to your project directory.
+
+Step 2: Check the Status
+Before you add and commit your changes, you can see what files you've changed:
+
+bash
+Copy code
+git status
+This command will show you all the files that have been modified, added, or deleted and are ready to be committed.
+
+Step 3: Add Changes to the Staging Area
+To add all the changed files to the staging area, use the following command:
+
+bash
+Copy code
+git add .
+This command adds all modified files to the staging area. If you want to add specific files instead of all changes, replace . with the file path:
+
+bash
+Copy code
+git add file1.java file2.java
+Step 4: Commit the Changes
+After staging your changes, you need to commit them with a message describing what you've changed:
+
+bash
+Copy code
+git commit -m "Describe your changes here"
+Replace "Describe your changes here" with a meaningful description of what changes the commit contains.
+
+Step 5: Push the Changes to the Remote Repository
+Once your changes are committed locally, you can push them to the remote repository:
+bash
+Copy code
+git push origin main
+Replace master with the branch you're working on if it's not the master branch, such as main or any other branch name.
+
+Troubleshooting
+Authentication Issues: If you're prompted for a username and password and you're using GitHub, make sure you're using a Personal Access Token (PAT) instead of your GitHub password.
+Branch Issues: If you're unsure about which branch you're on, you can check with git branch. The branch marked with an asterisk (*) is the current branch.
+Step 6: Verify the Push
+After pushing, you can verify that the changes are on GitHub by checking the repository in your browser. You can also use:
+
+bash
+Copy code
+git log
+This command shows you the commit history, and you can see your most recent commit at the top.
+
+Git Pull
+git pull origin main
+
+
+By following these steps, you should be able to successfully push your changes made in Eclipse to your Git repository using Git Bash. If you encounter any problems along the way, feel free to ask for more help!
