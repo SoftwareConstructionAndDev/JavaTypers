@@ -1,4 +1,4 @@
-# Project DEMO
+# Project TEXT EDITOR  IMPLEMENTATION PHASE I
 
 This project demonstrates three core use cases:
 
