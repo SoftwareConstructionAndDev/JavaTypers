@@ -1,5 +1,4 @@
 
-
 //BL/FileBL.java
 //package BL;
 
@@ -22,6 +21,48 @@ public class FileBL {
  public FileBL() {
      fileDAO = new FileDAO();
  }
+//Business logic to create a file
+public boolean createFile(String fileName, String content) throws SQLException, NoSuchAlgorithmException {
+   // Validation: Check if the file name or content is empty
+   if (fileName == null || fileName.trim().isEmpty() || content == null || content.trim().isEmpty()) {
+       throw new IllegalArgumentException("File name and content must be non-empty");
+   }
+   // Call the DAO layer to create the file with the default owner
+   return fileDAO.createFile(fileName.trim(), content.trim(), DEFAULT_OWNER);
+}
+
+// Business logic to read a file from the database
+public FileDTO readFile(String fileName) throws SQLException {
+   // Validation: Check if the file name is empty
+   if (fileName == null || fileName.trim().isEmpty()) {
+       throw new IllegalArgumentException("File name must be non-empty");
+   }
+   // Call the DAO layer to read the file by its name
+   return fileDAO.readFile(fileName.trim());
+}
+
+// Business logic to update an existing file
+public boolean updateFile(String fileName, String content) throws SQLException, NoSuchAlgorithmException {
+   // Validation: Check if the file name or content is empty
+   if (fileName == null || fileName.trim().isEmpty() || content == null || content.trim().isEmpty()) {
+       throw new IllegalArgumentException("File name and content must be non-empty");
+   }
+   // Call the DAO layer to update the file with the default owner
+   return fileDAO.updateFile(fileName.trim(), content.trim(), DEFAULT_OWNER);
+}
+
+// Business logic to delete a file from the database
+//BL/FileBL.java
+
+//In FileBL.java
+public boolean deleteFile(String fileName) throws SQLException {
+// Check if the file name is valid
+if (fileName == null || fileName.trim().isEmpty()) {
+    throw new IllegalArgumentException("File name must be non-empty");
+}
+// Call the DAO layer to delete the file and pass the default owner ("imama")
+return fileDAO.deleteFile(fileName.trim(), DEFAULT_OWNER);
+}
 
  
 //BL/FileBL.java
