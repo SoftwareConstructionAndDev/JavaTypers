@@ -163,6 +163,58 @@ public class TextEditorGUI extends JFrame {
                 setStatus("File already exists", true);
             }
         }
+     // Method to read a file
+        private void readFile() throws SQLException {
+            String fileName = fileNameField.getText();
+            loadFile(fileName);
+        }
+     // Create a file and clear input fields afterward
+        private void createFile() throws SQLException, NoSuchAlgorithmException {
+            String fileName = fileNameField.getText();
+            String content = contentArea.getText();
+
+            if (fileManager.createFile(fileName, content)) {
+                setStatus("File created successfully", false);
+                clearFields();  // Clear the input fields after file creation
+                refreshFileList();
+            } else {
+                setStatus("Failed to create file", true);
+            }
+        }
+
+        // Update a file and clear input fields afterward
+        private void updateFile() throws SQLException, NoSuchAlgorithmException {
+            String fileName = fileNameField.getText();
+            String content = contentArea.getText();
+
+            if (fileManager.updateFile(fileName, content)) {
+                setStatus("File updated successfully", false);
+                clearFields();  // Clear the input fields after file update
+                refreshFileList();
+            } else {
+                setStatus("Failed to update file", true);
+            }
+        }
+
+     // In TextEditorGUI.java
+        private void deleteFile() throws SQLException {
+            String fileName = fileNameField.getText();  // Get the file name from the input field
+
+            // Check if the file name is provided
+            if (fileName == null || fileName.trim().isEmpty()) {
+                setStatus("File name must be provided to delete", true);
+                return;  // Do nothing if no file name is provided
+            }
+
+            // Call the Business Logic Layer to delete the file
+            if (fileManager.deleteFile(fileName)) {
+                setStatus("File deleted successfully", false);
+                clearFields();  // Clear the input fields after deletion
+                refreshFileList();  // Refresh the file list after deletion
+            } else {
+                setStatus("Failed to delete file", true);
+            }
+        }
     }
     
 
