@@ -72,5 +72,10 @@ public boolean importFile(Path filePath) throws IOException, SQLException, NoSuc
   return fileDAO.importFile(filePath);
 }
 
+public List<String> listAllFiles() throws SQLException {
+    // Call the DAO layer to retrieve all file names
+    return fileDAO.listAllFiles();
+ }
+
 }
 
