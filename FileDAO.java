@@ -82,6 +82,65 @@ public boolean isFileExists(String hashValue) throws SQLException {
       rs.next();
       return rs.getInt(1) > 0;
   }
+//Create a new file in the database with owner "imama"
+public boolean createFile(String fileName, String content, String owner) throws SQLException, NoSuchAlgorithmException {
+    String sql = "INSERT INTO files (file_name, file_content, owner, hash_value) VALUES (?, ?, ?, ?)";
+    try (Connection conn = getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, fileName);           // Set file name
+        pstmt.setString(2, content);            // Set file content
+        pstmt.setString(3, owner);              // Owner is "imama"
+        pstmt.setString(4, calculateHash(content));  // Set SHA-256 hash of content
+        return pstmt.executeUpdate() > 0;       // Return true if the insert was successful
+    }
+}
+
+// Read a file's details from the database using the file name
+public FileDTO readFile(String fileName) throws SQLException {
+    String sql = "SELECT * FROM files WHERE file_name = ?";
+    try (Connection conn = getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, fileName);   // Set file name as parameter
+        ResultSet rs = pstmt.executeQuery();
+        if (rs.next()) {
+            return new FileDTO(
+                rs.getString("file_name"),        // File name
+                rs.getString("file_content"),     // File content
+                rs.getString("owner"),            // Owner (default: "imama")
+                rs.getTimestamp("created_at"),    // Created timestamp
+                rs.getTimestamp("updated_at")     // Updated timestamp
+            );
+        }
+    }
+    return null;  // Return null if the file is not found
+}
+
+// Update an existing file's content and hash based on the file name and owner
+public boolean updateFile(String fileName, String content, String owner) throws SQLException, NoSuchAlgorithmException {
+    String sql = "UPDATE files SET file_content = ?, hash_value = ? WHERE file_name = ? AND owner = ?";
+    try (Connection conn = getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, content);            // Set updated content
+        pstmt.setString(2, calculateHash(content));  // Set updated hash
+        pstmt.setString(3, fileName);           // Set file name
+        pstmt.setString(4, owner);              // Owner is "imama"
+        return pstmt.executeUpdate() > 0;       // Return true if the update was successful
+    }
+}
+
+// Delete a file from the database based on the file name and owner
+//DAL/FileDAO.java
+
+//In FileDAO.java
+public boolean deleteFile(String fileName, String owner) throws SQLException {
+ String sql = "DELETE FROM files WHERE file_name = ? AND owner = ?";
+ try (Connection conn = getConnection();
+      PreparedStatement pstmt = conn.prepareStatement(sql)) {
+     pstmt.setString(1, fileName);  // Set the file name in the SQL query
+     pstmt.setString(2, owner);  // Set the owner ("imama") in the SQL query
+     return pstmt.executeUpdate() > 0;  // Return true if a row was deleted
+ }
+}
 }
 
 }
