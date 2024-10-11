@@ -143,5 +143,20 @@ public boolean deleteFile(String fileName, String owner) throws SQLException {
 }
 }
 
+//Retrieve a list of all file names in the database
+public List<String> listAllFiles() throws SQLException {
+  List<String> fileNames = new ArrayList<>();
+  String sql = "SELECT file_name FROM files";
+  try (Connection conn = getConnection();
+       Statement stmt = conn.createStatement();
+       ResultSet rs = stmt.executeQuery(sql)) {
+      while (rs.next()) {
+          fileNames.add(rs.getString("file_name"));  // Add each file name to the list
+      }
+  }
+  return fileNames;  // Return the list of file names
+}
+
+
 }
 
