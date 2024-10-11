@@ -44,6 +44,18 @@ public class TextEditorGUI extends JFrame {
         JPanel leftPanel = new JPanel(new BorderLayout());
 
         
+     // Button for View All Files
+        JPanel viewButtonsPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+        JButton viewAllFilesButton = new JButton("View All Files");
+        viewAllFilesButton.setBackground(new Color(75, 0, 130));  // Set purple background
+        viewAllFilesButton.setForeground(Color.WHITE);  // Set text color to white
+        viewAllFilesButton.addActionListener(e -> refreshFileList());
+
+        JButton viewOneFileButton = new JButton("View 1 File");
+        viewOneFileButton.setBackground(new Color(75, 0, 130));  // Set purple background
+        viewOneFileButton.setForeground(Color.WHITE);  // Set text color to white
+        viewOneFileButton.addActionListener(e -> viewOneFile());
+        
 
 //        viewButtonsPanel.add(viewAllFilesButton);
 //        viewButtonsPanel.add(viewOneFileButton);
@@ -58,6 +70,8 @@ public class TextEditorGUI extends JFrame {
         leftPanel.add(listScrollPane, BorderLayout.CENTER);
 
         add(leftPanel, BorderLayout.WEST);
+        
+        
 
         // Center panel with input fields and text area
         JPanel centerPanel = new JPanel(new BorderLayout());
@@ -290,6 +304,37 @@ public class TextEditorGUI extends JFrame {
                 }
                 clearFields();  // Clear the input fields after bulk file import
                 refreshFileList();
+            }
+        }
+    }
+    
+ // Method to view one file and display all attributes in text fields/areas
+    private void viewOneFile() {
+        String fileName = JOptionPane.showInputDialog(this, "Enter File Name to View:", "View 1 File", JOptionPane.PLAIN_MESSAGE);
+        if (fileName != null && !fileName.trim().isEmpty()) {
+            try {
+                // Load file details from the Business Logic Layer
+                FileDTO file = fileManager.readFile(fileName.trim());
+                if (file != null) {
+                    // Populate the fields with the file details
+                    fileNameField.setText(file.getFileName());
+                    
+                    // Show content along with other file details in the text area
+                    contentArea.setText(
+                        "Content: \n" + file.getContent() + "\n\n" +
+                        "----- File Details -----\n" +
+                        
+                        "Created At: " + file.getCreatedAt() + "\n" +
+                        "Updated At: " + file.getUpdatedAt() + "\n" +
+                        "Owner: " + file.getOwner() + "\n"
+                    );
+                    
+                    setStatus("File loaded successfully", false);
+                } else {
+                    setStatus("File not found", true);
+                }
+            } catch (SQLException ex) {
+                setStatus("Error loading file: " + ex.getMessage(), true);
             }
         }
     }
