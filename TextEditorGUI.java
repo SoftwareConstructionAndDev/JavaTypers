@@ -83,7 +83,33 @@ public class TextEditorGUI extends JFrame {
 
         contentArea = new JTextArea();
         JScrollPane contentScrollPane = new JScrollPane(contentArea);
+ private void searchFiles() {
+        String searchTerm = JOptionPane.showInputDialog(this, "Enter search term:", "Search Files", JOptionPane.PLAIN_MESSAGE);
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            try {
+                List<FileDTO> files = fileManager.searchFilesByContent(searchTerm);
+                listModel.clear();
+                for (FileDTO file : files) {
+                    listModel.addElement(file.getFileName());
+                }
+                setStatus("Found " + files.size() + " files containing '" + searchTerm + "'", false);
+            } catch (SQLException ex) {
+                setStatus("Search error: " + ex.getMessage(), true);
+            }
+        }
+    }
 
+    private void transliterateContent() {
+        String content = contentArea.getText();
+        if (!content.trim().isEmpty()) {
+            // Implement your transliteration logic here
+            String transliterated = content.toUpperCase(); // Basic implementation
+            contentArea.setText(transliterated);
+            setStatus("Content transliterated", false);
+        } else {
+            setStatus("No content to transliterate", true);
+        }
+    }
         centerPanel.add(inputPanel, BorderLayout.NORTH);
         centerPanel.add(contentScrollPane, BorderLayout.CENTER);
 
