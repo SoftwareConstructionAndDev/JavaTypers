@@ -37,7 +37,27 @@ private static final String DEFAULT_OWNER = null;
      return hexString.toString();
  }
 
- 
+  public List<FileDTO> searchFiles(String searchTerm) throws SQLException {
+        List<FileDTO> results = new ArrayList<>();
+        String sql = "SELECT * FROM files WHERE file_name LIKE ? OR file_content LIKE ?";
+        try (Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, "%" + searchTerm + "%");
+            pstmt.setString(2, "%" + searchTerm + "%");
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                results.add(new FileDTO(
+                    rs.getInt("id"),
+                    rs.getString("file_name"),
+                    rs.getString("file_content"),
+                    rs.getTimestamp("created_at"),
+                    rs.getTimestamp("updated_at"),
+                    rs.getString("owner"),
+                    rs.getString("hash_value")
+                ));
+            }
+        }
+        return results;
+    }
 
  
 //DAL/FileDAO.java
