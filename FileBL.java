@@ -40,6 +40,37 @@ public FileDTO readFile(String fileName) throws SQLException {
    // Call the DAO layer to read the file by its name
    return fileDAO.readFile(fileName.trim());
 }
+  public List<FileDTO> searchFiles(String searchTerm) throws SQLException {
+	    if (searchTerm == null || searchTerm.trim().isEmpty()) {
+	        throw new IllegalArgumentException("Search term must not be empty");
+	    }
+	    return fileDAO.searchFiles(searchTerm.trim());
+	}
+ 
+	    // Method to transliterate Arabic text to a phonetic English equivalent
+	    public String transliterateText(String arabicText) {
+	        if (arabicText == null || arabicText.trim().isEmpty()) {
+	            throw new IllegalArgumentException("Text for transliteration must not be empty");
+	        }
+
+	        Map<Character, String> transliterationMap = new HashMap<>();
+	        transliterationMap.put('ا', "a");
+	        transliterationMap.put('ب', "b");
+	        transliterationMap.put('ت', "t");
+	        transliterationMap.put('ث', "th");
+	        transliterationMap.put('ج', "j");
+	        transliterationMap.put('ح', "h");
+	        transliterationMap.put('خ', "kh");
+	        // Continue mapping Arabic characters to their phonetic English equivalents
+	        // Add more mappings as needed
+
+	        StringBuilder transliterated = new StringBuilder();
+	        for (char c : arabicText.toCharArray()) {
+	            transliterated.append(transliterationMap.getOrDefault(c, String.valueOf(c)));
+	        }
+	        return transliterated.toString();
+	    }
+	
 
 // Business logic to update an existing file
 public boolean updateFile(String fileName, String content) throws SQLException, NoSuchAlgorithmException {
