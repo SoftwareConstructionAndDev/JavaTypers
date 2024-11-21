@@ -1,4 +1,4 @@
-package src.DAL;
+package DAL;
 
 public class MySQLDAOFactory {
 

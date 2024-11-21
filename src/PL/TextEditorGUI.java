@@ -1,5 +1,5 @@
 // PL/TextEditorGUI.java
-package PL;
+package src.PL;
 
 import BL.FileBL;
 import DTO.FileDTO;

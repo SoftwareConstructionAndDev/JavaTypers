@@ -1,21 +1,22 @@
 package BL;
 
-//BL/FileBL.java
-//package BL;
 
+import DAL.DAOFactory;
 import DAL.FileDAO;
+import DAL.IFileDAO;
+import DAL.MongoDAOFactory;
 import DTO.FileDTO;
 
 import java.io.IOException;
+import java.io.ObjectInputFilter.Config;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.List;
 
 public class FileBL {
- private FileDAO fileDAO;
+ private IFileDAO fileDAO;
 
- // Default owner of all files is "imama"
  private static final String DEFAULT_OWNER = "imama";
 
  // Constructor initializes the FileDAO object
@@ -31,7 +32,7 @@ public class FileBL {
              return new MongoDAOFactory();
          case "MySQL":
          default:
-             return new MySQLDAOFactory();
+             return new DAOFactory();
      }
  }
 
