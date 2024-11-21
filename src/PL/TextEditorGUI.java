@@ -95,6 +95,7 @@ public class TextEditorGUI extends JFrame {
         addButton(buttonPanel, "Delete File", new Color(75, 0, 130));  // Dark purple color
         addButton(buttonPanel, "Import File", new Color(75, 0, 130));  // Dark purple color
         addButton(buttonPanel, "Import Bulk Files", new Color(75, 0, 130));  // Dark purple color
+        addButton(buttonPanel, "Analysis", new Color(0, 128, 0));  // Green for analysis button
 
         add(buttonPanel, BorderLayout.SOUTH);
 
@@ -153,6 +154,9 @@ public class TextEditorGUI extends JFrame {
                     break;
                 case "Import Bulk Files":
                     importBulkFiles();
+                    break;
+                case "Analysis":
+                    openAnalysisManager();
                     break;
             }
         } catch (Exception ex) {
@@ -362,4 +366,10 @@ public class TextEditorGUI extends JFrame {
             ui.setVisible(true);
         });
     }
+    // Methid to open analysis Manager
+    private void openAnalysisManager() {
+        SwingUtilities.invokeLater(() -> {
+            AnalysisManager analysisManager = new AnalysisManager(this);
+            analysisManager.setVisible(true);
+        });
 }
