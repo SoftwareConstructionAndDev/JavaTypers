@@ -157,6 +157,32 @@ public boolean isFileExists(String hashValue) throws SQLException {
       return rs.getInt(1) > 0;
   }
 }
+//fetching file content
+public List<String> getAllFiles() throws Exception {
+    List<String> files = new ArrayList<>();
+    try (Connection conn = getConnection();
+         PreparedStatement stmt = conn.prepareStatement("SELECT content FROM files");
+         ResultSet rs = stmt.executeQuery()) {
+        while (rs.next()) {
+            files.add(rs.getString("content"));
+        }
+    }
+    return files;
+}
+
+public String getFileContent(String fileName) throws Exception {
+    try (Connection conn = getConnection();
+         PreparedStatement stmt = conn.prepareStatement("SELECT content FROM files WHERE name = ?")) {
+        stmt.setString(1, fileName);
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getString("content");
+            }
+        }
+    }
+    return null;
+}
+
 
 }
 
