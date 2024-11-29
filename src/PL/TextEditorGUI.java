@@ -1,19 +1,18 @@
-<<<<<<< HEAD
-// PL/TextEditorGUI.java
-package src.PL;
-=======
 
 package PL;
->>>>>>> 98d7435acd6f003015f512056ff54ed2b587873d
 
 
-import javax.swing.*;
-import javax.swing.event.CaretEvent;
-import javax.swing.event.CaretListener;
-import java.awt.*;
-import java.awt.event.ActionEvent;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Rectangle;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
@@ -21,12 +20,30 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.lang.reflect.Method;
+
+import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
+import javax.swing.JList;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
 
 import BL.FileBL;
 
 public class TextEditorGUI extends JFrame {
-    private JTextArea editorArea;
+    private static JTextArea editorArea;
     private JPanel filePanel;
     private JList<String> fileList;
     private DefaultListModel<String> fileListModel;
@@ -76,7 +93,7 @@ public class TextEditorGUI extends JFrame {
         TRANSLITERATION_TABLE.put('ِ', "i");
     }
 
-    public TextEditorGUI() {
+    public TextEditorGUI() throws Exception {
         initializeFrame();
         initializeComponents();
         setupFilePanel();
@@ -89,12 +106,12 @@ public class TextEditorGUI extends JFrame {
 
     private void initializeFrame() {
         setTitle("Arabic Text Editor with File Management");
-        setSize(1200, 800);
+        setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
     }
 
-    private void initializeComponents() {
+    private void initializeComponents() throws Exception {
         // Initialize text components
         editorArea = new JTextArea();
         editorArea.setLineWrap(true);
@@ -122,7 +139,7 @@ public class TextEditorGUI extends JFrame {
         fileList = new JList<>(fileListModel);
         fileList.setBackground(new Color(200, 200, 200));
         fileList.setForeground(new Color(80, 80, 80));
-        fileList.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        fileList.setFont(new Font("SansSerif", Font.PLAIN, 16));
 
         fileList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -134,7 +151,10 @@ public class TextEditorGUI extends JFrame {
         });
 
         JScrollPane fileScrollPane = new JScrollPane(fileList);
-        filePanel.add(new JLabel("Files", JLabel.CENTER), BorderLayout.NORTH);
+        fileScrollPane.setPreferredSize(new Dimension(200, 300));
+
+        filePanel.add(new JLabel("Your Files", JLabel.CENTER), BorderLayout.NORTH);
+        filePanel.setFont(new Font("SansSerif", Font.BOLD, 20));
         filePanel.add(fileScrollPane, BorderLayout.CENTER);
 
         add(filePanel, BorderLayout.WEST);
@@ -142,7 +162,7 @@ public class TextEditorGUI extends JFrame {
 
     private void setupEditorPanel() {
         JPanel editorPanel = new JPanel(new BorderLayout());
-        editorArea.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        editorArea.setFont(new Font("SansSerif", Font.PLAIN, 18));
 
         JPanel pageControlPanel = new JPanel(new BorderLayout());
         JButton prevButton = createStyledButton("<");
@@ -163,26 +183,46 @@ public class TextEditorGUI extends JFrame {
     
     private void setupToolbar() {
         JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-
+        
         JButton[] buttons = {
-            createToolbarButton("New", e -> newFile()),
-            createToolbarButton("Import", e -> importFiles()),
-            createToolbarButton("Save", e -> fileManager.saveFile()),
-            createToolbarButton("Delete", e -> deleteSelectedFile()),
-            createToolbarButton("View", e -> toggleFilePanel()),
-            createToolbarButton("Font", e -> openFontSelector()),
-            createToolbarButton("Search", e -> searchContent()), // Add Search button
-            createToolbarButton("Transliterate", e -> transliterateContent())
+            createToolbarButton("Toggle File Panel", "/resources/eye.png", e -> toggleFilePanel()),
+            createToolbarButton("New", "/resources/add.png", e -> newFile()),
+            createToolbarButton("Import", "/resources/import.png", e -> importFiles()),
+            createToolbarButton("Save", "/resources/save.png", e -> fileManager.saveFile()),
+            createToolbarButton("Delete", "/resources/delete.png", e -> deleteSelectedFile()),
+            createToolbarButton("Font", "/resources/font.png", e -> openFontSelector()),
+            createToolbarButton("Transliterate", "/resources/tranliterate.png", e -> transliterateContent()),
+            createToolbarButton("POS Tags", "/resources/tag.png", e -> {
+                try {
+                    processSelectedText();
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            }),
+            createToolbarButton("Analyze Files", "/resources/analysis.png", e -> {
+                try {
+                    analyzeFiles();
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            })
         };
 
+        // Add buttons to the toolbar panel
         for (JButton button : buttons) {
             toolbarPanel.add(button);
         }
 
+        // Create search field and add search button with icon
+        JTextField searchField = new JTextField(17);  // Adjusted field width
+        JButton searchButton = createToolbarButton("Search", "/resources/search.png", e -> searchContent(searchField.getText()));
+        toolbarPanel.add(searchField);
+        toolbarPanel.add(searchButton);
+
+        // Add the toolbar panel to the frame
         add(toolbarPanel, BorderLayout.NORTH);
     }
 
-   
 
    
 
@@ -195,12 +235,43 @@ public class TextEditorGUI extends JFrame {
         button.setBorderPainted(false);
         return button;
     }
+    private JButton createStyledButton(String text, String iconPath) {
+        JButton button = new JButton();
+        if (iconPath != null && !iconPath.isEmpty()) {
+            try {
+                ImageIcon icon = new ImageIcon(getClass().getResource(iconPath));
+                button.setIcon(icon);
+                button.setToolTipText(text); // Set tooltip to the button text
+            } catch (Exception ex) {
+                button.setText(text); // Fallback to text if icon fails to load
+                System.err.println("Failed to load icon: " + iconPath);
+            }
+        } else {
+            button.setText(text); // Set text if no icon path is provided
+        }
 
-    private JButton createToolbarButton(String text, ActionListener action) {
-        JButton button = createStyledButton(text);
+        // Set styling
+        button.setBackground(new Color(0x5A008C));
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("SansSerif", Font.BOLD, 12));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+
+        // Increase the button size
+        button.setPreferredSize(new Dimension(60, 40)); // Adjust width and height as needed
+
+        return button;
+    }
+
+
+
+
+    private JButton createToolbarButton(String text, String iconPath, ActionListener action) {
+        JButton button = createStyledButton(text, iconPath);
         button.addActionListener(action);
         return button;
     }
+
 
     private void newFile() {
         editorArea.setText("");
@@ -249,6 +320,12 @@ public class TextEditorGUI extends JFrame {
         if (selectedFont != null) {
             editorArea.setFont(selectedFont);
         }
+        
+    }
+    private void analyzeFiles() throws Exception {
+        // Create a new instance of the AnalyzeManager screen and make it visible
+        AnalysisManager analyzeManager = new AnalysisManager();
+        analyzeManager.setVisible(true);
     }
 
    
@@ -405,10 +482,8 @@ public class TextEditorGUI extends JFrame {
     }
     
     //====================================================================
- // Search Logic
-    private void searchContent() {
-        String searchText = JOptionPane.showInputDialog(this, "Enter content to search:", "Search Files", JOptionPane.PLAIN_MESSAGE);
-
+    //search function
+    private void searchContent(String searchText) {
         if (searchText == null || searchText.trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Search text cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
@@ -437,8 +512,68 @@ public class TextEditorGUI extends JFrame {
             }
         }
     }
+    
+    //POS Tagging
+    private static void setupContextMenu() {
+        // Create a popup menu for POS tags
+        JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem posTagsItem = new JMenuItem("POS Tags");
+        popupMenu.add(posTagsItem);
+
+        // Add MouseListener to JTextArea for right-click
+        editorArea.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    popupMenu.show(editorArea, e.getX(), e.getY());
+                }
+            }
+        });
+
+        // Add action listener for the POS Tags menu item
+        posTagsItem.addActionListener(e -> {
+			try {
+				processSelectedText();
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		});
+    }
+
+    private static void processSelectedText() throws Exception {
+    	JFrame frame = new JFrame("Arabic POS Tagger");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(600, 400);
+        frame.setLayout(new BorderLayout());
+    	FileBL fileBL = new FileBL();
+        String selectedText = editorArea.getSelectedText();
+        if (selectedText != null && !selectedText.isEmpty()) {
+            try {
+                String posTag = fileBL.processTextForPOSTags(selectedText);
+                JOptionPane.showMessageDialog(frame, "POS Tag for selected text: " + posTag,
+                                              "POS Tag", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(frame, "Error fetching POS tag: " + ex.getMessage(),
+                                              "POS Error", JOptionPane.ERROR_MESSAGE);
+            }
+        } else {
+            JOptionPane.showMessageDialog(frame, "No text selected.",
+                                          "Selection Error", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+    
+    
+    
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(TextEditorGUI::new);
+        SwingUtilities.invokeLater(() -> {
+			try {
+				new TextEditorGUI();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		});
     }
     
     

@@ -40,25 +40,6 @@ public class FileManager {
             JOptionPane.showMessageDialog(null, "Failed to load files from the database.");
         }
     }
-    public List<String> searchFilesContainingText(String searchText) {
-        List<String> matchingFiles = new ArrayList<>();
-        try {
-            // Get all files from the database
-            List<FileDTO> allFiles = fileBL.listAllFiles();
-
-            // Filter files containing the search text
-            for (FileDTO file : allFiles) {
-                if (file.getContent().contains(searchText)) {
-                    matchingFiles.add(file.getFileName());
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Error searching files: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        }
-        return matchingFiles;
-    }
-    
 
 
     // Save a new file and paginate its content
@@ -175,4 +156,21 @@ public class FileManager {
     public FileBL getFileBL() {
         return fileBL;
     }
+    public List<String> searchFilesContainingText(String searchText) {
+        List<String> matchingFiles = new ArrayList<>();
+        try {
+            List<FileDTO> allFiles = fileBL.listAllFiles();
+            for (FileDTO file : allFiles) {
+                if (file.getContent().contains(searchText)) {
+                    matchingFiles.add(file.getFileName());
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error searching files: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        return matchingFiles;
+    }
+    
+    
 }

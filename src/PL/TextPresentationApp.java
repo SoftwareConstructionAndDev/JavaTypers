@@ -45,7 +45,12 @@ public class TextPresentationApp extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 dispose(); // Close the presentation screen
-                new TextEditorGUI(); // Open the TextEditorGUI
+                try {
+					new TextEditorGUI();
+				} catch (Exception e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} // Open the TextEditorGUI
             }
         });
 

@@ -10,7 +10,7 @@ import java.util.List;
 public class CRUDManager {
     private final FileBL fileBL;
 
-    public CRUDManager() {
+    public CRUDManager() throws Exception {
         fileBL = new FileBL();
     }
 
