@@ -464,7 +464,6 @@ public class TextEditorGUI extends JFrame {
         }
 
         // Transliterate the content
-        //=========================================================================
         String transliteratedContent = transliterateText(content);
 
         // Display the transliteration in a new window
@@ -475,7 +474,12 @@ public class TextEditorGUI extends JFrame {
         JTextArea transliterationArea = new JTextArea(transliteratedContent);
         transliterationArea.setEditable(false);
         transliterationArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        JScrollPane scrollPane = new JScrollPane(transliterationArea);
+        transliterationArea.setLineWrap(true); // Enable line wrapping for better readability
+        transliterationArea.setWrapStyleWord(true); // Wrap at word boundaries instead of breaking words
+
+        JScrollPane scrollPane = new JScrollPane(transliterationArea, 
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, 
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
         transliterationWindow.add(scrollPane, BorderLayout.CENTER);
         transliterationWindow.setVisible(true);
