@@ -1,140 +1,242 @@
 package PL;
 
 import BL.AnalysisManagerBL;
-import DAL.FileDAO;
+import BL.FileBL;
+import BL.I_File;
+import DTO.FileDTO;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 public class AnalysisManager extends JFrame {
-    private AnalysisManagerBL analysisManager;
-    private FileDAO databaseManager;
-    private JTextArea resultArea;
-    private JPanel mainPanel;
-    private JPanel buttonPanel;
-    private JPanel resultPanel;
+    private final AnalysisManagerBL analysisManager;
+    private final I_File fileBL;
+    private final JTextArea resultArea;
+    private final JRadioButton tfidfButton;
+    private final JRadioButton pmiButton;
+    private final JRadioButton pklButton;
+    private final JList<String> fileList;
 
-    public AnalysisManager() throws Exception {
+    public AnalysisManager(I_File fileBL) {
         setTitle("Text Analysis");
         setSize(800, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
+        // Dependency injection with fallback
+        this.fileBL = (fileBL != null) ? fileBL : initializeFileBL();
         analysisManager = new AnalysisManagerBL();
-        databaseManager = new FileDAO();
 
-        // Main Panel to hold all sub-panels
-        mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(Color.LIGHT_GRAY); // Set background color for main panel
-
-        // Panel to display results
-        resultPanel = new JPanel(new BorderLayout());
-        resultPanel.setBackground(new Color(240, 240, 255)); // Light blue background for result panel
-
-        // Text area to display results
+        // Result area setup
         resultArea = new JTextArea();
         resultArea.setEditable(false);
-        resultArea.setBackground(new Color(245, 245, 245)); // Light gray background for the text area
-        resultArea.setForeground(Color.BLACK); // Text color for the result area
-        resultArea.setFont(new Font("Arial", Font.PLAIN, 14)); // Set a readable font
-        resultPanel.add(new JScrollPane(resultArea), BorderLayout.CENTER);
+        resultArea.setBackground(new Color(240, 240, 240));
+        resultArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
-        // Panel for buttons
-        buttonPanel = new JPanel();
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.setBackground(Color.DARK_GRAY); // Dark background for the button panel
+        // Metric selection buttons
+        tfidfButton = new JRadioButton("TF-IDF");
+        pmiButton = new JRadioButton("PMI");
+        pklButton = new JRadioButton("PKL");
+        ButtonGroup metricGroup = new ButtonGroup();
+        metricGroup.add(tfidfButton);
+        metricGroup.add(pmiButton);
+        metricGroup.add(pklButton);
+        tfidfButton.setSelected(true);
 
-        // Create buttons
-        JButton analyzeIndividualButton = new JButton("Analyze Individual Files");
-        analyzeIndividualButton.setBackground(new Color(60, 179, 113)); // Green background
-        analyzeIndividualButton.setForeground(Color.WHITE); // White text
-        analyzeIndividualButton.setFocusPainted(false); // Remove focus highlight
-        analyzeIndividualButton.addActionListener(e -> analyzeIndividualFiles());
+        // Action buttons
+        JButton analyzeButton = createPurpleButton("Analyze Metric");
+        analyzeButton.addActionListener(e -> analyzeFiles());
 
-        JButton analyzeAllButton = new JButton("Analyze Across All Files");
-        analyzeAllButton.setBackground(new Color(70, 130, 180)); // Steel blue background
-        analyzeAllButton.setForeground(Color.WHITE); // White text
-        analyzeAllButton.setFocusPainted(false);
-        analyzeAllButton.addActionListener(e -> analyzeAcrossAllFiles());
+        JButton analyzeAllButton = createPurpleButton("Analyze All Files");
+        analyzeAllButton.addActionListener(e -> analyzeAllFiles());
 
-        JButton backButton = new JButton("Back");
-        backButton.setBackground(new Color(255, 99, 71)); // Tomato red background
-        backButton.setForeground(Color.WHITE); // White text
-        backButton.setFocusPainted(false);
-        backButton.addActionListener(e -> {
-			try {
-				navigateBack();
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-		});
+        JButton backButton = createPurpleButton("Back");
+        backButton.addActionListener(e -> navigateBack());
 
-        // Add buttons to the panel
-        buttonPanel.add(analyzeIndividualButton);
+        // File list setup
+        DefaultListModel<String> fileListModel = new DefaultListModel<>();
+        loadFilesFromDB(fileListModel);
+
+        fileList = new JList<>(fileListModel);
+        fileList.setBackground(new Color(240, 240, 240));
+        fileList.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        JScrollPane fileListScrollPane = new JScrollPane(fileList);
+
+        // Button panel
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(new Color(0x5A008C));
+        buttonPanel.add(tfidfButton);
+        buttonPanel.add(pmiButton);
+        buttonPanel.add(pklButton);
+        buttonPanel.add(analyzeButton);
         buttonPanel.add(analyzeAllButton);
         buttonPanel.add(backButton);
 
-        // Add the button panel and result panel to the main panel
-        mainPanel.add(buttonPanel, BorderLayout.NORTH);
-        mainPanel.add(resultPanel, BorderLayout.CENTER);
+        // Layout setup
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, fileListScrollPane, new JScrollPane(resultArea));
+        splitPane.setDividerLocation(200);
+        add(splitPane, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
 
-        // Set the main panel to the frame
-        add(mainPanel);
         setVisible(true);
     }
 
-    private void navigateBack() throws Exception {
-        // Close current window and show the previous screen (TextEditorGUI)
-        this.setVisible(false); 
-        new TextEditorGUI(); 
+    private I_File initializeFileBL() {
+        try {
+            return new FileBL();
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error initializing FileBL: " + e.getMessage());
+            return null;
+        }
     }
 
-    private void analyzeIndividualFiles() {
-        try {
-            List<String> allFiles = databaseManager.getAllFiles();
-            Map<String, Map<String, Map<String, Double>>> results = analysisManager.analyzeIndividualFiles(allFiles);
+    private JButton createPurpleButton(String text) {
+        JButton button = new JButton(text);
+        button.setBackground(new Color(0x5A008C));
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("SansSerif", Font.BOLD, 12));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setPreferredSize(new Dimension(150, 40));
+        return button;
+    }
 
-            resultArea.setText("Individual File Analysis Results:\n\n");
-            for (Map.Entry<String, Map<String, Map<String, Double>>> entry : results.entrySet()) {
-                resultArea.append("File: " + entry.getKey() + "\n");
+    private void navigateBack() {
+        SwingUtilities.invokeLater(() -> {
+            this.setVisible(false);
+            try {
+                new TextEditorGUI(fileBL);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
 
-                Map<String, Map<String, Double>> fileResults = entry.getValue();
-                for (Map.Entry<String, Map<String, Double>> metricEntry : fileResults.entrySet()) {
-                    resultArea.append("  " + metricEntry.getKey() + ":\n");
-                    for (Map.Entry<String, Double> metric : metricEntry.getValue().entrySet()) {
-                        resultArea.append("    " + metric.getKey() + ": " + metric.getValue() + "\n");
+    private void analyzeFiles() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                List<String> selectedFiles = fileList.getSelectedValuesList();
+                if (selectedFiles.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Please select at least one file.");
+                    return;
+                }
+
+                List<String> fileContents = selectedFiles.stream()
+                        .map(fileName -> {
+                            FileDTO fileDTO =null ;
+                            try {
+                                fileDTO = fileBL.getFileIdByName(fileName);
+                            } catch (SQLException e) {
+                                e.printStackTrace();
+                            }
+                            return fileDTO != null ? fileDTO.getContent() : null;
+                        })
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+
+                if (fileContents.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "No valid file contents found.");
+                    return;
+                }
+
+                Map<String, Map<String, Double>> results = null;
+                if (tfidfButton.isSelected()) {
+                    results = analysisManager.analyzeIndividualTFIDF(fileContents);
+                } else if (pmiButton.isSelected()) {
+                    results = analysisManager.analyzeIndividualPMI(fileContents);
+                } else if (pklButton.isSelected()) {
+                    results = analysisManager.analyzeIndividualPKL(fileContents);
+                }
+
+                if (results != null) {
+                    displayResultsInTable(results);
+                } else {
+                    JOptionPane.showMessageDialog(this, "No analysis selected.");
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error analyzing files: " + ex.getMessage());
+            }
+        });
+    }
+
+    private void analyzeAllFiles() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                List<FileDTO> allFiles = fileBL.listAllFiles();
+                if (allFiles.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "No files available for analysis.");
+                    return;
+                }
+
+                List<String> allFileContents = allFiles.stream()
+                        .map(FileDTO::getContent)
+                        .collect(Collectors.toList());
+
+                Map<String, Double> tfidfResults = analysisManager.analyzeCombinedTFIDF(allFileContents);
+                Map<String, Double> pmiResults = analysisManager.analyzeCombinedPMI(allFileContents);
+                Map<String, Double> pklResults = analysisManager.analyzeCombinedPKL(allFileContents);
+
+                DefaultTableModel tableModel = new DefaultTableModel(new String[]{"Term", "TF-IDF", "PMI", "PKL"}, 0);
+                for (FileDTO file : allFiles) {
+                    Set<String> terms = new HashSet<>(tfidfResults.keySet());
+                    terms.addAll(pmiResults.keySet());
+                    terms.addAll(pklResults.keySet());
+                    for (String term : terms) {
+                        tableModel.addRow(new Object[]{term, tfidfResults.get(term), pmiResults.get(term), pklResults.get(term)});
                     }
                 }
-                resultArea.append("\n");
+
+                displayResultsInTable(tableModel);
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error analyzing files: " + ex.getMessage());
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error analyzing individual files: " + ex.getMessage());
-        }
+        });
     }
 
-    private void analyzeAcrossAllFiles() {
+    private void displayResultsInTable(Map<String, Map<String, Double>> results) {
+        DefaultTableModel tableModel = new DefaultTableModel(new String[]{"Term", "Value"}, 0);
+        results.forEach((file, metrics) -> metrics.forEach((term, value) -> tableModel.addRow(new Object[]{term, value})));
+        JTable resultTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(resultTable);
+        resultArea.removeAll();
+        resultArea.setLayout(new BorderLayout());
+        resultArea.add(scrollPane, BorderLayout.CENTER);
+        resultArea.revalidate();
+        resultArea.repaint();
+    }
+
+    private void displayResultsInTable(DefaultTableModel tableModel) {
+        JTable resultTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(resultTable);
+        resultArea.removeAll();
+        resultArea.setLayout(new BorderLayout());
+        resultArea.add(scrollPane, BorderLayout.CENTER);
+        resultArea.revalidate();
+        resultArea.repaint();
+    }
+
+    private void loadFilesFromDB(DefaultListModel<String> fileListModel) {
         try {
-            List<String> allFiles = databaseManager.getAllFiles();
-            Map<String, Map<String, Double>> results = analysisManager.analyzeAcrossAllFiles(allFiles);
-
-            resultArea.setText("Overall Analysis Results Across All Files:\n\n");
-            for (Map.Entry<String, Map<String, Double>> entry : results.entrySet()) {
-                resultArea.append(entry.getKey() + ":\n");
-                for (Map.Entry<String, Double> metric : entry.getValue().entrySet()) {
-                    resultArea.append(metric.getKey() + ": " + metric.getValue() + "\n");
-                }
-                resultArea.append("\n");
+            List<FileDTO> files = fileBL.listAllFiles();
+            if (files.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "No files available.");
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error analyzing across all files: " + ex.getMessage());
+            fileListModel.clear();
+            files.forEach(file -> fileListModel.addElement(file.getFileName()));
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Failed to load files from the database.");
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        new AnalysisManager();
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new AnalysisManager(null));
     }
 }
