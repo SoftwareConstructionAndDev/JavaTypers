@@ -44,6 +44,7 @@ public class TextEditorGUI extends JFrame {
     private static I_File fileBL;
     private static final HashMap<Character, String> TRANSLITERATION_TABLE = new HashMap<>();
     private JPanel filePanel;
+    private JLabel wordCountLabel;
     
 
 
@@ -128,10 +129,12 @@ public class TextEditorGUI extends JFrame {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} // Assuming FileBL handles DB interactions
-        initializeFrame();
+         initializeFrame();
         initializeComponents();
+        setupWordCountDisplay();        //word count
         setupFilePanel();
-        setupEditorPanel();
+        setupEditorPanel();              //update pannel
+        setupEditorPanel11();
         setupToolbar();
         setupLemmatization();
 
@@ -179,7 +182,49 @@ public class TextEditorGUI extends JFrame {
 
         loadFilesFromDB(); // Populate the sidebar with files
     }
+//Function to set word counter; 
+    private void setupWordCountDisplay() {
+        wordCountLabel = new JLabel("Words: 0 / 0");
+        JPanel wordCountPanel = new JPanel(new BorderLayout());
+        wordCountPanel.add(wordCountLabel, BorderLayout.WEST); // Align the label to the left side
+        wordCountPanel.setBorder(new EmptyBorder(5, 10, 5, 10)); // Add some padding for aesthetics
 
+        // Ensure this panel is added to the bottom of the layout
+        add(wordCountPanel, BorderLayout.SOUTH);
+    }
+
+    // Update the word count display
+    private void updateWordCount() {
+        String text = editorArea.getText();
+        int totalWords = text.isEmpty() ? 0 : text.split("\\s+").length; // Calculate total words
+        int caretPos = editorArea.getCaretPosition();
+        int wordsFromCursor = 0;
+        if (caretPos > 0 && caretPos <= text.length()) {
+            String textBeforeCursor = text.substring(0, caretPos);
+            wordsFromCursor = textBeforeCursor.isEmpty() ? 0 : textBeforeCursor.split("\\s+").length; // Words from start to cursor
+        }
+
+        wordCountLabel.setText("Words before cursor: " + wordsFromCursor + " / Total words: " + totalWords);
+    }
+
+
+ // DocumentListener and CaretListener to update word count
+ private void setupEditorPanel() {
+     JPanel editorPanel = new JPanel(new BorderLayout());
+     editorArea = new JTextArea();
+     editorArea.setLineWrap(true);
+     editorArea.setWrapStyleWord(true);
+     editorArea.getDocument().addDocumentListener(new DocumentListener() {
+         public void insertUpdate(DocumentEvent e) { updateWordCount(); }
+         public void removeUpdate(DocumentEvent e) { updateWordCount(); }
+         public void changedUpdate(DocumentEvent e) { updateWordCount(); }
+     });
+     editorArea.addCaretListener(e -> updateWordCount());
+
+     JScrollPane scrollPane = new JScrollPane(editorArea);
+     editorPanel.add(scrollPane, BorderLayout.CENTER);
+     add(editorPanel, BorderLayout.CENTER);
+ }
 
     private void setupFilePanel() {
         JPanel filePanel = new JPanel(new BorderLayout());
