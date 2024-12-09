@@ -1,8 +1,8 @@
 package PL;
 
 import BL.AnalysisManagerBL;
-import BL.FileBL;
-import BL.I_File;
+import BL.FileManager;
+import BL.FileService;
 import DTO.FileDTO;
 
 import javax.swing.*;
@@ -15,14 +15,14 @@ import java.util.stream.Collectors;
 
 public class AnalysisManager extends JFrame {
     private final AnalysisManagerBL analysisManager;
-    private final I_File fileBL;
+    private final FileService fileBL;
     private final JTextArea resultArea;
     private final JRadioButton tfidfButton;
     private final JRadioButton pmiButton;
     private final JRadioButton pklButton;
     private final JList<String> fileList;
 
-    public AnalysisManager(I_File fileBL) {
+    public AnalysisManager(FileService fileBL) {
         setTitle("Text Analysis");
         setSize(800, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -85,9 +85,9 @@ public class AnalysisManager extends JFrame {
         setVisible(true);
     }
 
-    private I_File initializeFileBL() {
+    private FileService initializeFileBL() {
         try {
-            return new FileBL();
+            return new FileManager();
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error initializing FileBL: " + e.getMessage());
@@ -130,7 +130,7 @@ public class AnalysisManager extends JFrame {
                         .map(fileName -> {
                             FileDTO fileDTO =null ;
                             try {
-                                fileDTO = fileBL.getFileIdByName(fileName);
+                                fileDTO = fileBL.getFileByName(fileName);
                             } catch (SQLException e) {
                                 e.printStackTrace();
                             }

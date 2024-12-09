@@ -5,7 +5,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class fontSelector extends JDialog {
+public class FontSelector extends JDialog {
 
     private JComboBox<String> fontSelector;
     private JComboBox<String> fontSize;
@@ -14,7 +14,7 @@ public class fontSelector extends JDialog {
     private Font selectedFont;
 
     // Constructor
-    public fontSelector() {
+    public FontSelector() {
         setTitle("Font Selector");
         setSize(300, 200);
         setLayout(null);

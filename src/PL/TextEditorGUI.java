@@ -1,7 +1,5 @@
 
-
 package PL;
-
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -21,27 +19,32 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
-
-import BL.FileBL;
-import BL.I_File;
+import BL.FileManager;
+import BL.FileService;
 import DTO.FileDTO;
 import DTO.FilePageDTO;
+import javax.swing.event.DocumentListener; // to impliment wordcount
+import javax.swing.event.DocumentEvent;
+import javax.swing.text.Element;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 public class TextEditorGUI extends JFrame {
+	private static final Logger LOGGER = Logger.getLogger(TextEditorGUI.class.getName());
     private static JTextArea editorArea;
     private JList<String> fileList;
     private DefaultListModel<String> fileListModel;
     private JLabel pageLabel;
     private JButton lemmatizeButton;
-    private fontSelector fontSelectorDialog;
+    private FontSelector fontSelectorDialog;
     private String currentFileName = null;
     private List<FilePageDTO> pages = new ArrayList<>();
     private int currentPageIndex = 0;
-    private static I_File fileBL;
+    private static FileService fileBL;
     private static final HashMap<Character, String> TRANSLITERATION_TABLE = new HashMap<>();
     private JPanel filePanel;
     private JLabel wordCountLabel;
@@ -49,6 +52,7 @@ public class TextEditorGUI extends JFrame {
 
 
     static {// Populate the transliteration table
+    	LOGGER.info("Populating transliteration table");
     	TRANSLITERATION_TABLE.put('ا', "a");
     	TRANSLITERATION_TABLE.put('ب', "b");
     	TRANSLITERATION_TABLE.put('ت', "t");
@@ -121,32 +125,71 @@ public class TextEditorGUI extends JFrame {
 
     }
 
-    public TextEditorGUI(I_File fileBL) {
+    public TextEditorGUI(FileService fileBL) {
+        LOGGER.info("Initializing TextEditorGUI");
         this.fileBL = fileBL;
-		try {
-			this.fileBL = new FileBL();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} // Assuming FileBL handles DB interactions
-         initializeFrame();
-        initializeComponents();
-        setupWordCountDisplay();        //word count
-        setupFilePanel();
-        setupEditorPanel();              //update pannel
-        setupEditorPanel11();
-        setupToolbar();
-        setupLemmatization();
+        try {
+            this.fileBL = new FileManager(); // Assuming FileBL handles DB interactions
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to initialize FileManager", e);
+            e.printStackTrace();
+        }
 
-        // Initialize the font selector dialog
-        fontSelectorDialog = new fontSelector();
+        // Threads for initializing frame and components
+        Thread threadFrame = new Thread(() -> SwingUtilities.invokeLater(this::initializeFrame));
+        Thread threadComponents = new Thread(() -> SwingUtilities.invokeLater(this::initializeComponents));
 
-        loadFilesFromDB();
-        setVisible(true);
+        // Start initialization threads
+        threadFrame.start();
+        threadComponents.start();
+
+        // Wait for initialization threads to complete
+        try {
+            threadFrame.join();
+            threadComponents.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Threads for setup functions
+        Thread threadFilePanel = new Thread(() -> SwingUtilities.invokeLater(this::setupFilePanel));
+        Thread threadEditorPanel = new Thread(() -> SwingUtilities.invokeLater(this::setupEditorPanel)); // Update panel
+        Thread threadEditorPanel11 = new Thread(() -> SwingUtilities.invokeLater(this::setupEditorPanel11));
+        Thread threadToolbar = new Thread(() -> SwingUtilities.invokeLater(this::setupToolbar));
+
+        // Start setup threads
+        threadFilePanel.start();
+        threadEditorPanel.start();
+        threadEditorPanel11.start();
+        threadToolbar.start();
+
+        // Wait for setup threads to complete
+        try {
+            threadFilePanel.join();
+            threadEditorPanel.join();
+            threadEditorPanel11.join();
+            threadToolbar.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Initialize remaining UI elements on the EDT
+        SwingUtilities.invokeLater(() -> {
+            setupWordCountDisplay();        // Word count
+            setupLemmatization();
+
+            // Initialize the font selector dialog
+            fontSelectorDialog = new FontSelector();
+
+            loadFilesFromDB();
+            setVisible(true);
+        });
     }
 
 
+
     private void initializeFrame() {
+    	LOGGER.info("Initializing components");
         setTitle("Arabic Text Editor with File Management");
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -182,8 +225,13 @@ public class TextEditorGUI extends JFrame {
 
         loadFilesFromDB(); // Populate the sidebar with files
     }
-//Function to set word counter; 
+     
+    //Function to set word counter; 
+ // Part of the TextEditorGUI class
+
+ // Initialize the word count label and add it to a panel
     private void setupWordCountDisplay() {
+    	LOGGER.info("Setting up word count display");
         wordCountLabel = new JLabel("Words: 0 / 0");
         JPanel wordCountPanel = new JPanel(new BorderLayout());
         wordCountPanel.add(wordCountLabel, BorderLayout.WEST); // Align the label to the left side
@@ -195,6 +243,7 @@ public class TextEditorGUI extends JFrame {
 
     // Update the word count display
     private void updateWordCount() {
+    	LOGGER.fine("Updating word count");
         String text = editorArea.getText();
         int totalWords = text.isEmpty() ? 0 : text.split("\\s+").length; // Calculate total words
         int caretPos = editorArea.getCaretPosition();
@@ -208,8 +257,9 @@ public class TextEditorGUI extends JFrame {
     }
 
 
- // DocumentListener and CaretListener to update word count
+ // Setup DocumentListener and CaretListener to update word count
  private void setupEditorPanel() {
+	 LOGGER.info("Setting up editor panel for word count updates");
      JPanel editorPanel = new JPanel(new BorderLayout());
      editorArea = new JTextArea();
      editorArea.setLineWrap(true);
@@ -226,7 +276,9 @@ public class TextEditorGUI extends JFrame {
      add(editorPanel, BorderLayout.CENTER);
  }
 
+
     private void setupFilePanel() {
+    	LOGGER.info("Setting up file panel");
         JPanel filePanel = new JPanel(new BorderLayout());
         
         // Set a preferred size for the sidebar
@@ -254,7 +306,7 @@ public class TextEditorGUI extends JFrame {
 
 
 
-    private void setupEditorPanel() {
+    private void setupEditorPanel11() {
         JPanel editorPanel = new JPanel(new BorderLayout());
         JPanel pageControlPanel = new JPanel(new BorderLayout());
         JButton prevButton = createStyledButton("<");
@@ -270,6 +322,7 @@ public class TextEditorGUI extends JFrame {
     }
 
     private void setupToolbar() {
+    	 LOGGER.info("Setting up toolbar");
         JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         
         JButton[] buttons = {
@@ -312,15 +365,22 @@ public class TextEditorGUI extends JFrame {
     }
 
 
-private void toggleFilePanel() {
+    private void toggleFilePanel() {
+        LOGGER.info("Attempting to toggle file panel visibility");
         if (filePanel != null) {
             boolean isVisible = filePanel.isVisible();
-            filePanel.setVisible(!isVisible); // Toggle visibility
+            LOGGER.info("File panel is currently visible: " + isVisible);
+            filePanel.setVisible(!isVisible);
+            LOGGER.info("File panel visibility should now be set to: " + !isVisible);
+        } else {
+            LOGGER.severe("File panel is null and cannot be toggled");
         }
     }
 
 
+
     private JButton createStyledButton(String text) {
+    	LOGGER.fine("Creating styled button");
         JButton button = new JButton(text);
         button.setBackground(new Color(0x5A008C));
         button.setForeground(Color.WHITE);
@@ -330,7 +390,8 @@ private void toggleFilePanel() {
         return button;
     }
     private JButton createStyledButton(String text, String iconPath) {
-        JButton button = new JButton();
+    	LOGGER.fine("Creating styled button with icon");
+    	JButton button = new JButton();
         if (iconPath != null && !iconPath.isEmpty()) {
             try {
                 ImageIcon icon = new ImageIcon(getClass().getResource(iconPath));
@@ -364,6 +425,7 @@ private void toggleFilePanel() {
     }
 
     private void newFile() {
+    	LOGGER.info("Creating new file");
         currentFileName = null; // Reset the current file name
         editorArea.setText(""); // Clear the text area
         pages.clear(); // Clear the pages list
@@ -372,15 +434,18 @@ private void toggleFilePanel() {
     }
 
    private void saveFile() {
+	   LOGGER.info("Saving file");
     try {
         String content = editorArea.getText();
 
         if (content == null || content.trim().isEmpty()) {
+        	LOGGER.warning("Attempted to save an empty file");
             JOptionPane.showMessageDialog(this, "Cannot save an empty file.", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         if (currentFileName == null) {
+        	LOGGER.warning("File name input was cancelled or empty");
             currentFileName = JOptionPane.showInputDialog(this, "Enter file name:", "Save File", JOptionPane.PLAIN_MESSAGE);
             if (currentFileName == null || currentFileName.trim().isEmpty()) {
                 return;
@@ -413,6 +478,7 @@ private void toggleFilePanel() {
 
 
     private void deleteSelectedFile() {
+    	LOGGER.info("Deleting selected file");
         String selectedFile = fileList.getSelectedValue();
         if (selectedFile != null) {
             try {
@@ -431,16 +497,20 @@ private void toggleFilePanel() {
     
 
     private void loadFilesFromDB() {
+    	 LOGGER.info("Loading files from database");
         try {
             List<FileDTO> files = fileBL.listAllFiles();
+            LOGGER.info("Files loaded from database");
             fileListModel.clear();
             for (FileDTO file : files) fileListModel.addElement(file.getFileName());
         } catch (SQLException e) {
+        	LOGGER.log(Level.SEVERE, "Failed to load files from database", e);
             JOptionPane.showMessageDialog(this, "Failed to load files from database.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void loadFile(String fileName) {
+    	 LOGGER.info("Loading file: " + fileName);
         try {
             FileDTO file = fileBL.readFile(fileName);
             if (file == null) {
@@ -455,6 +525,7 @@ private void toggleFilePanel() {
     }
 
     private void paginateContent(String content) {
+    	LOGGER.info("Paginating content");
         try {
             pages = fileBL.paginateAndSaveContent(fileBL.getFileIdByName(currentFileName), content);
             currentPageIndex = 0;
@@ -465,6 +536,7 @@ private void toggleFilePanel() {
     }
 
     private void updateEditorPage() {
+    	 LOGGER.fine("Updating editor page");
         if (pages.isEmpty()) {
             editorArea.setText("No content available.");
             pageLabel.setText("Page: 0 / 0");
@@ -476,6 +548,7 @@ private void toggleFilePanel() {
     }
 
     private void nextPage() {
+    	LOGGER.info("Navigating to next page");
         if (currentPageIndex < pages.size() - 1) {
             currentPageIndex++;
             updateEditorPage();
@@ -485,6 +558,7 @@ private void toggleFilePanel() {
     }
 
     private void prevPage() {
+    	 LOGGER.info("Navigating to previous page");
         if (currentPageIndex > 0) {
             currentPageIndex--;
             updateEditorPage();
@@ -496,14 +570,16 @@ private void toggleFilePanel() {
     
 
     private void analyzeFiles() {
+    	LOGGER.info("Analyzing files");
     	// Create a new instance of the AnalyzeManager screen and make it visible
-        //AnalysisManager analyzeManager = new AnalysisManager();
-        //analyzeManager.setVisible(true);
+        AnalysisManager analyzeManager = new AnalysisManager(null);
+        analyzeManager.setVisible(true);
     }
 
     
 
     private void setupLemmatization() {
+    	LOGGER.info("Setting up lemmatization");
         editorArea.addCaretListener(new LemmatizationCaretListener());
 
         lemmatizeButton = createStyledButton("Lemmatize");
@@ -515,22 +591,30 @@ private void toggleFilePanel() {
     }
 
     private void lemmatizeSelectedText() {
+        LOGGER.fine("Attempting to lemmatize selected text");
         String selectedText = editorArea.getSelectedText();
         if (selectedText != null && !selectedText.isEmpty()) {
             new Thread(() -> {
+                LOGGER.info("Starting new thread for lemmatization");
                 String lemmatizationResult = performLemmatization(selectedText);
-                SwingUtilities.invokeLater(() -> 
+                SwingUtilities.invokeLater(() -> {
                     JOptionPane.showMessageDialog(this, lemmatizationResult, 
-                        "Lemmatization Result", JOptionPane.INFORMATION_MESSAGE)
-                );
+                        "Lemmatization Result", JOptionPane.INFORMATION_MESSAGE);
+                    LOGGER.fine("Lemmatization result displayed");
+                });
             }).start();
+        } else {
+            LOGGER.warning("No text selected for lemmatization");
         }
     }
 
+
     private String performLemmatization(String arabicText) {
+        LOGGER.info("Performing lemmatization on text");
         try {
-            File jarFile = new File("C:\\Users\\Mamai Nataki\\Desktop\\jars\\AlKhalil-2.1.21.jar");
+            File jarFile = new File("C:\\Users\\Admin\\Downloads\\lastphase\\ZainabEman\\src\\lib\\AlKhalil-2.1.21.jar");
             if (!jarFile.exists()) {
+                LOGGER.severe("JAR file not found at " + jarFile.getAbsolutePath());
                 return "Error: JAR file not found at " + jarFile.getAbsolutePath();
             }
 
@@ -552,18 +636,23 @@ private void toggleFilePanel() {
             classLoader.close();
 
             if (lemmas.isEmpty()) {
+                LOGGER.info("No lemmas found for the text");
                 return "No lemmas found for: " + arabicText;
             }
 
+            LOGGER.info("Lemmatization successful");
             return "Lemmas: " + String.join(", ", lemmas);
 
         } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error during lemmatization: " + e.getMessage(), e);
             return "Error during lemmatization: " + e.getMessage();
         }
     }
+
     private class LemmatizationCaretListener implements CaretListener {
         @Override
         public void caretUpdate(CaretEvent e) {
+            LOGGER.fine("Caret update event received");
             String selectedText = editorArea.getSelectedText();
             if (selectedText != null && !selectedText.trim().isEmpty()) {
                 try {
@@ -574,62 +663,91 @@ private void toggleFilePanel() {
                         100, 30
                     );
                     lemmatizeButton.setVisible(true);
+                    LOGGER.info("Lemmatize button positioned and made visible");
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    LOGGER.log(Level.SEVERE, "Failed to position the lemmatize button due to an exception", ex);
                     lemmatizeButton.setVisible(false);
                 }
             } else {
                 lemmatizeButton.setVisible(false);
+                LOGGER.info("Lemmatize button made invisible as no text is selected or text is empty");
             }
         }
     }
+
     //====================================================================
     //search function
     private void searchContent(String searchText) {
+        LOGGER.info("Initiating content search");
         if (searchText == null || searchText.trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Search text cannot be empty.", "Error", JOptionPane.ERROR_MESSAGE);
+            LOGGER.warning("Search text was empty");
             return;
         }
 
+        LOGGER.fine("Searching for files containing text: " + searchText);
         java.util.List<String> matchingFiles = searchFilesContainingText(searchText);
 
         if (matchingFiles.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No files found containing the specified text.", "No Matches", JOptionPane.INFORMATION_MESSAGE);
+            LOGGER.info("No files found containing the specified text");
             return;
         }
 
         JList<String> fileList = new JList<>(new DefaultListModel<>());
         DefaultListModel<String> listModel = (DefaultListModel<String>) fileList.getModel();
-        matchingFiles.forEach(listModel::addElement);
+        matchingFiles.forEach(file -> {
+            listModel.addElement(file);
+            LOGGER.fine("File added to search results: " + file);
+        });
 
         JScrollPane scrollPane = new JScrollPane(fileList);
         scrollPane.setPreferredSize(new Dimension(400, 200));
 
+        LOGGER.info("Displaying search results");
         int result = JOptionPane.showConfirmDialog(this, scrollPane, "Search Results", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
             String selectedFile = fileList.getSelectedValue();
             if (selectedFile != null) {
-                //viewFile(selectedFile);
+                LOGGER.info("File selected from search results: " + selectedFile);
+                // viewFile(selectedFile); // Uncomment or modify this line to handle file viewing.
+            } else {
+                LOGGER.info("No file selected from search results");
             }
+        } else {
+            LOGGER.info("Search results dialog was canceled");
         }
     }
+
     
     public List<String> searchFilesContainingText(String searchText) {
+        LOGGER.info("Searching for files containing specified text");
         List<String> matchingFiles = new ArrayList<>();
         try {
             List<FileDTO> allFiles = fileBL.listAllFiles();
+            LOGGER.fine("Retrieved list of all files for searching text");
+
             for (FileDTO file : allFiles) {
                 if (file.getContent().contains(searchText)) {
                     matchingFiles.add(file.getFileName());
+                    LOGGER.fine("File containing search text found: " + file.getFileName());
                 }
             }
+
+            if (matchingFiles.isEmpty()) {
+                LOGGER.info("No files found containing the search text");
+            } else {
+                LOGGER.info("Total files found containing the search text: " + matchingFiles.size());
+            }
+
         } catch (SQLException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "SQL exception occurred while searching files", e);
             JOptionPane.showMessageDialog(null, "Error searching files: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
         return matchingFiles;
     }
+
     /*public void viewFile(String fileName) {
         try {
             // Retrieve the document by its name
@@ -799,7 +917,7 @@ private void toggleFilePanel() {
     }
     private void openFontSelector() {
         if (fontSelectorDialog == null) {
-            fontSelectorDialog = new fontSelector(); // Initialize if not already done
+            fontSelectorDialog = new FontSelector(); // Initialize if not already done
         }
         fontSelectorDialog.setVisible(true); // Show the font selector dialog
         Font selectedFont = fontSelectorDialog.returnFont();
@@ -840,39 +958,13 @@ private void toggleFilePanel() {
     
     
   //POS Tagging
-    private static void setupContextMenu() {
-        // Create a popup menu for POS tags
-        JPopupMenu popupMenu = new JPopupMenu();
-        JMenuItem posTagsItem = new JMenuItem("POS Tags");
-        popupMenu.add(posTagsItem);
-
-        // Add MouseListener to JTextArea for right-click
-        editorArea.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    popupMenu.show(editorArea, e.getX(), e.getY());
-                }
-            }
-        });
-
-        // Add action listener for the POS Tags menu item
-        posTagsItem.addActionListener(e -> {
-			try {
-				processSelectedText();
-			} catch (Exception e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-		});
-    }
 
     private static void processSelectedText() throws Exception {
     	JFrame frame = new JFrame("Arabic POS Tagger");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(600, 400);
         frame.setLayout(new BorderLayout());
-    	I_File fileBL = new FileBL();
+    	FileService fileBL = new FileManager();
         String selectedText = editorArea.getSelectedText();
         if (selectedText != null && !selectedText.isEmpty()) {
             try {

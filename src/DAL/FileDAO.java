@@ -20,7 +20,7 @@ import com.qcri.farasa.pos.Sentence;
 import com.qcri.farasa.pos.FarasaPOSTagger;
 import com.qcri.farasa.segmenter.Farasa;
 
-public class FileDAO implements I_DAO {
+public class FileDAO implements FileDataAccess {
 
     private static final String URL = "jdbc:mysql://localhost:3306/texteditor";
     private static final String USER = "root";
